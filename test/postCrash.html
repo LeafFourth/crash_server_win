@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>post crash</title>
+  </head>
+  <body>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <label for="file">file:</label>
+    <input id="file" type='file' accept="application/zip" />
+    <br />
+    <button type="button" onclick="upload()">upload</button>
+
+    <script>
+      function upload() {
+
+        var file = $("#file").prop("files")[0];
+        var fileReader = new FileReader();
+
+        fileReader.onload = function(){
+            var result = this.result;
+            var blob = new Blob([result],{type:file.type});
+            var formData = new FormData();
+            formData.append('crashFile',blob,file.name);
+　　　　　　　//添加其他表单字段
+            $.ajax({
+                type:"post",
+                url:"http://127.0.0.1:3001/postCrash",
+                async:true,
+                processData:false,
+                contentType:false,
+                data:formData,
+                success:function (data) {
+                    console.log('upload success')
+                },
+                error:function (xhr,text) {
+                    if(text === 'timeout'){
+                        xhr.abort();
+                    }
+                }
+            });
+        }
+
+        fileReader.readAsArrayBuffer(file);
+      }
+    </script>
+  </body>
+</html>

@@ -10,6 +10,7 @@ var DebugLogger *log.Logger
 
 func InitLogger() {
 	writer := utilities.NewLogWriter();
+	writer.SetLogPath("E:/log.txt");
 
 	ErrorLogger = log.New(writer, "-E- ", log.Llongfile | log.Lmicroseconds);
 	InfoLogger  = log.New(writer, "-I- ", log.Llongfile | log.Lmicroseconds);

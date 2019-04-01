@@ -1,7 +1,6 @@
 package receiver
 
 import "fmt"
-import "io"
 import "io/ioutil"
 import "net/http"
 import "os"
@@ -85,7 +84,6 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 
 	osFile, err := file.Open();
 	defer osFile.Close();
-	fmt.Println(file);
 	if err != nil {
 		fmt.Println(3, err);
 		w.WriteHeader(http.StatusBadRequest);
@@ -94,46 +92,18 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filePath := defines.LocalStorePath + file.Filename;
-	dst, err2 := os.OpenFile(filePath, 
-			os.O_CREATE | os.O_TRUNC | os.O_WRONLY, 0644);
-	if (err2 != nil) {
-		fmt.Println(4, err2);
-		w.WriteHeader(http.StatusInternalServerError);
-		w.Write([]byte("unknown error"));
+	err2 := common.WriteFile(osFile, filePath);
+	if err2 != nil {
+		fmt.Println(3, err2);
+		w.WriteHeader(http.StatusBadRequest);
+		w.Write([]byte("file error"));
 		return;
 	}
 
-	for {
-		var tmp = [512]byte{}
-		var bytes []byte = tmp[0:];
-		n, err3 := osFile.Read(bytes);
-		if err3 != nil && err3 != io.EOF {
-			fmt.Println(5, err3, n);
-			w.WriteHeader(http.StatusBadRequest);
-			w.Write([]byte("file error"));
-
-			dst.Close();
-			os.Remove(filePath);
-			return;
-		}
-		_, err4 := dst.Write(bytes);
-		if (err4 != nil) {
-			fmt.Println(6, err4);
-			dst.Close();
-			os.Remove(filePath);
-
-			w.WriteHeader(http.StatusBadRequest);
-			w.Write([]byte("file error"));
-			return;
-		}
-
-
-		if n == 0 {
-			break;
-		}
+	err3 := common.UnzipFile(filePath, "E:/tmp");
+	if err3 != nil {
+		fmt.Println(err3);
 	}
-
-	dst.Close();
 }
 
 func initRouter() {

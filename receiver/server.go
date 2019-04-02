@@ -122,7 +122,7 @@ func initHttpServer() {
 
 }
 
-func InitReceiver () {
+func RunReceiver () {
 	initRouter();
 	initHttpServer();
 }

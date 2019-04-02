@@ -14,8 +14,5 @@ func main() {
 	common.InitLogger();
 	analyze.InitAnalyze(taskCb);
 
-	task := analyze.Task{Ver: "1.0", File: `E:\TestC.dmp`};
-	analyze.RunTask(task);
-
-	receiver.InitReceiver();
+	receiver.RunReceiver();
 }

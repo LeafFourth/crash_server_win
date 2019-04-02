@@ -7,8 +7,12 @@ import "os"
 import "strconv"
 import "strings"
 
+import "utilities"
+
 import "crash_server_win/common"
 import "crash_server_win/defines"
+
+var handler *utilities.RequestHandler;
 
 func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
   if strings.HasSuffix(r.URL.Path, "/") {
@@ -106,23 +110,24 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func initRouter() {
-	http.HandleFunc("/", defaultHandle);
-	http.HandleFunc("/postCrash", receiveCrashFile);
+func initHandler() {
+	handlers := make(map[string]func(http.ResponseWriter, *http.Request));
+	handlers["/"] = defaultHandle;
+	handlers["/postCrash"] = receiveCrashFile;
+
+	handler = utilities.NewRequestHandler(&handlers);
 }
 
-func initHttpServer() {
+func runHttpServer() {
 	port := ":" + strconv.FormatUint(uint64(defines.ReceiverPort), 10) ;
-	err := http.ListenAndServe(port, nil);
+	err := http.ListenAndServe(port, handler);
 	if err != nil {
 		common.ErrorLogger.Print(err);
 		return;
 	}
-
-
 }
 
 func RunReceiver () {
-	initRouter();
-	initHttpServer();
+	initHandler();
+	runHttpServer();
 }

@@ -69,6 +69,13 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write(data);
 }
 
+func asyncUnzip(zipFile, dst string) {
+	err3 := utilities.UnzipFile(zipFile, dst);
+	if err3 != nil {
+		common.ErrorLogger.Print(zipFile, "", err3);
+	}
+}
+
 func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(1000000);
 	files := r.MultipartForm.File["crashFile"];
@@ -87,16 +94,16 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	osFile, err := file.Open();
-	defer osFile.Close();
 	if err != nil {
 		fmt.Println(3, err);
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("file error"));
 		return;
 	}
+	defer osFile.Close();
 
 	filePath := defines.LocalStorePath + file.Filename;
-	err2 := common.WriteFile(osFile, filePath);
+	err2 := utilities.WriteFile(osFile, filePath);
 	if err2 != nil {
 		fmt.Println(3, err2);
 		w.WriteHeader(http.StatusBadRequest);
@@ -104,16 +111,14 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-	err3 := common.UnzipFile(filePath, "E:/tmp");
-	if err3 != nil {
-		fmt.Println(err3);
-	}
+	go asyncUnzip(filePath, "E:/tmp");
 }
 
 func initHandler() {
 	handlers := make(map[string]func(http.ResponseWriter, *http.Request));
 	handlers["/"] = defaultHandle;
 	handlers["/postCrash"] = receiveCrashFile;
+	handlers["/postPdbs"] = receivePdbs;
 
 	handler = utilities.NewRequestHandler(&handlers);
 }
@@ -130,4 +135,75 @@ func runHttpServer() {
 func RunReceiver () {
 	initHandler();
 	runHttpServer();
+}
+
+func receivePdbs(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(1000000);
+	numV := r.MultipartForm.Value["pdb_num"];
+	if numV == nil || len(numV) <= 0 {
+		common.ErrorLogger.Print("pdb num error");
+
+		w.WriteHeader(http.StatusBadRequest);
+		w.Write([]byte("pdb num error"));
+		return;
+	}
+
+	num, err := strconv.ParseInt(numV[0], 10, 0);
+	if err != nil {
+		common.ErrorLogger.Print("num format error:", numV[0]);
+
+		w.WriteHeader(http.StatusBadRequest);
+		w.Write([]byte("num format error"));
+		return;
+	}
+
+
+	verV := r.MultipartForm.Value["ver"];
+	if verV == nil || len(verV) <= 0 {
+		common.ErrorLogger.Print("ver error");
+
+		w.WriteHeader(http.StatusBadRequest);
+		w.Write([]byte("ver error"));
+		return;
+	}
+	root := defines.PdbPath + verV[0] + `\`;
+
+	err2 :=  os.MkdirAll(root, 0644);
+	if err2 != nil {
+		common.ErrorLogger.Print(err2);
+
+		w.WriteHeader(http.StatusInternalServerError);
+		w.Write([]byte("unknown error"));
+		return;
+	}
+
+	for i := int64(0); i < num; i++ {
+		fileKey := "pdb" + strconv.FormatInt(i, 10);
+
+		fhV := r.MultipartForm.File[fileKey];
+		if fhV == nil ||  len(fhV) <= 0 {
+			common.ErrorLogger.Print("file not exist:", fileKey);
+			continue;
+		}
+
+		file := fhV[0];
+		if file == nil {
+			common.ErrorLogger.Print("file not exist:", fileKey);
+			continue;
+		}
+
+		osFile, err3 := file.Open();
+		if err3 != nil {
+			common.ErrorLogger.Print("file open error:", fileKey);
+			continue;
+		}
+		defer osFile.Close();
+
+
+		filePath := root + file.Filename;
+		if err4 := utilities.WriteFile(osFile, filePath); err4 != nil {
+			common.ErrorLogger.Print("file save error:", fileKey);
+			continue;
+		}
+	}
 }

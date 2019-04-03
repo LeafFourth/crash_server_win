@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>post pdb</title>
+  </head>
+  <body>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+
+    <label for="ver">ver:</label>
+    <input id="ver" type='text' />
+    <br />
+
+    <label for="file">file:</label>
+    <input id="file" type='file' accept=".pdb" multiple="multiple" />
+    <br />
+
+    <button type="button" onclick="upload()">upload</button>
+
+    <script>
+      "use strict"
+
+      function upload() {
+
+        let files = $("#file").prop("files");
+        if (files.length <= 0) {
+            alert("empty! Please select pdbs!");
+            return;
+        }
+        let ver = $("#ver").val();
+        if (ver === "") {
+            alert("ver empty!");
+            return;
+        }
+
+        let formData = new FormData();
+        let index = files.length - 1;
+
+        let fileReader = new FileReader();
+        fileReader.onload = loadDown;
+        fileReader.readAsArrayBuffer(files[index]);
+        formData.append('pdb_num', files.length);
+        formData.append('ver', ver);
+
+        function loadDown() {
+            let result = this.result;
+            let blob = new Blob([result],{type:files[index].type});
+            formData.append('pdb' + index,blob,files[index].name);
+
+            if (index <= 0) {
+                postToServer();
+                return;
+            }
+
+            --index;
+            let fileReader = new FileReader();
+            fileReader.onload = loadDown;
+            fileReader.readAsArrayBuffer(files[index]);
+        }
+
+        function postToServer() {
+            $.ajax({
+                type:"post",
+                url:"/postPdbs",
+                async:true,
+                processData:false,
+                contentType:false,
+                data:formData,
+                success:function (data) {
+                    console.log('upload success')
+                },
+                error:function (xhr,text) {
+                    if(text === 'timeout'){
+                        xhr.abort();
+                    }
+                }
+            });
+        }        
+      }
+    </script>
+  </body>
+</html>

@@ -1,16 +1,25 @@
 package receiver
 
+import "encoding/json"
 import "fmt"
 import "io/ioutil"
 import "net/http"
 import "os"
+import "path/filepath"
 import "strconv"
 import "strings"
 
 import "utilities"
 
+import "crash_server_win/analyze"
 import "crash_server_win/common"
 import "crash_server_win/defines"
+
+type dmpDesc struct {
+	Ver  string;
+	Date string;
+	Uid  string;
+}
 
 type unzipTask struct {
 	zipFile string;
@@ -22,6 +31,10 @@ type unzipTask struct {
 var handler *utilities.RequestHandler;
 
 var unzipQue chan unzipTask;
+
+func taskCb(info interface{}, succ bool, result string) {
+	fmt.Println(succ, result);
+}
 
 func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
   if strings.HasSuffix(r.URL.Path, "/") {
@@ -82,9 +95,8 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("file error"));
 		return;
 	}
-	defer osFile.Close();
 
-	filePath := defines.LocalStorePath + file.Filename;
+	filePath := filepath.Join(defines.LocalStorePath, file.Filename);
 	err2 := utilities.WriteFile(osFile, filePath);
 	if err2 != nil {
 		fmt.Println(3, err2);
@@ -92,6 +104,7 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("file error"));
 		return;
 	}
+	osFile.Close();
 
 	postUnzipTask(filePath, defines.UnzipPath);
 }
@@ -144,7 +157,32 @@ func initUnzipTask() {
 }
 
 func onUnzipDown(t unzipTask) {
-	fmt.Println("finish:", t.zipFile);
+	dirName := strings.TrimSuffix(filepath.Base(t.zipFile), ".zip");
+	descName := filepath.Join(t.dst, dirName, defines.DmpDescName);
+	dmpName  := filepath.Join(t.dst, dirName, defines.DmpName);
+
+	file, err := os.Open(descName);
+	if err != nil {
+		common.ErrorLogger.Print("open desc file error:", err);
+		return;
+	}
+	defer file.Close();
+
+	decoder := json.NewDecoder(file);
+	var desc dmpDesc;
+	decoder.Decode(&desc);
+	if len(desc.Ver) <= 0 {
+		common.ErrorLogger.Print("no ver info");
+		return;
+	}
+
+	task := analyze.Task{
+				Ver: desc.Ver,
+				File: dmpName,
+				Info: &desc,
+			}
+
+	analyze.RunTask(task);
 }
 
 func postUnzipTask(zipFile, dst string) {
@@ -156,6 +194,7 @@ func postUnzipTask(zipFile, dst string) {
 }
 
 func RunReceiver () {
+	analyze.InitAnalyze(taskCb);
 	initUnzipTask();
 
 	initHandler();

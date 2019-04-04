@@ -12,7 +12,16 @@ import "utilities"
 import "crash_server_win/common"
 import "crash_server_win/defines"
 
+type unzipTask struct {
+	zipFile string;
+	dst     string;
+	cInfo interface {};
+	cb    func(unzipTask);
+}
+
 var handler *utilities.RequestHandler;
+
+var unzipQue chan unzipTask;
 
 func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
   if strings.HasSuffix(r.URL.Path, "/") {
@@ -25,32 +34,14 @@ func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func defaultHandle(w http.ResponseWriter, r *http.Request) {
-	// r.ParseForm();
-	// token := r.Form["token"];
-	// if token == nil {
-	// 	fmt.Println("args error");
-	// 	w.WriteHeader(401);
-	// 	w.Write([]byte(""));
-	// 	return;
-	// }
-
-	// if _, e := auth.CheckToken(token[0]); e != nil {
-	// 	fmt.Println(e);
-	// 	w.WriteHeader(401);
-	// 	w.Write([]byte(""));
-	// 	return;
-	// }
-
 	fmt.Println("require ", r.URL.Path);
 	if handleDefaultPage(w, r) {
 		return;
 	}
 
-
-
-  path := defines.ResRoot + r.URL.Path[1:];
-  f, err := os.Open(path);
-  if err != nil {
+	path := defines.ResRoot + r.URL.Path[1:];
+	f, err := os.Open(path);
+	if err != nil {
 		fmt.Println(err);
 		w.WriteHeader(404);
 		w.Write([]byte(""));
@@ -69,25 +60,16 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write(data);
 }
 
-func asyncUnzip(zipFile, dst string) {
-	err3 := utilities.UnzipFile(zipFile, dst);
-	if err3 != nil {
-		common.ErrorLogger.Print(zipFile, "", err3);
-	}
-}
-
 func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(1000000);
 	files := r.MultipartForm.File["crashFile"];
 	if files == nil || len(files) <= 0 {
-		fmt.Println(1);
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("empty"));
 		return;
 	}
 	file := files[0];
 	if file == nil {
-		fmt.Println(2);
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("empty"));
 		return;
@@ -111,7 +93,7 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-	go asyncUnzip(filePath, "E:/tmp");
+	postUnzipTask(filePath, defines.UnzipPath);
 }
 
 func initHandler() {
@@ -132,7 +114,50 @@ func runHttpServer() {
 	}
 }
 
+func unzipWorker() {
+	for  {
+		t := <- unzipQue;
+		if len(t.zipFile) <= 0 || len(t.dst) <= 0 {
+			continue;
+		}
+
+		err3 := utilities.UnzipFile(t.zipFile, t.dst);
+		if err3 != nil {
+			common.ErrorLogger.Print(t.zipFile, ":", err3);
+		}
+
+		if err := os.Remove(t.zipFile); err != nil {
+			common.ErrorLogger.Print(t.zipFile, ":", err3);
+		}
+
+		if t.cb != nil {
+			t.cb(t);
+		}
+	}
+	
+}
+
+func initUnzipTask() {
+	unzipQue = make(chan unzipTask, 1);
+
+	go unzipWorker();
+}
+
+func onUnzipDown(t unzipTask) {
+	fmt.Println("finish:", t.zipFile);
+}
+
+func postUnzipTask(zipFile, dst string) {
+	task := unzipTask{zipFile: zipFile,
+					  dst: dst,
+					  cb: onUnzipDown,
+					  cInfo: nil};
+	unzipQue <- task;
+}
+
 func RunReceiver () {
+	initUnzipTask();
+
 	initHandler();
 	runHttpServer();
 }

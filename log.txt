@@ -1,0 +1,1 @@
+-E- 15:50:46.047349 E:/code/go/src/crash_server_win/receiver/server.go:139: E:\crashserver\tmp\dmp1.zip:create file error:E:\crashserver\dmps\dmp1

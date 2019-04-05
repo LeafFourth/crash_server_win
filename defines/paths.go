@@ -8,3 +8,5 @@ var ResRoot = "E:/code/go/src/crash_server_win/res/";
 var LocalStorePath = "E:/crashserver/";
 
 var UnzipPath = "E:/tmp/"
+
+var LogsRoot = "";

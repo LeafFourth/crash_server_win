@@ -1,0 +1,18 @@
+{
+    "Ports": {
+        "ReceiveHttp": 3001
+    },
+    "Paths": {
+        "CdbPath"       : "D:/Windows Kits/10/Debuggers/x86/cdb.exe",
+        "PdbRoot"       : "E:\\crashserver\\pdbs\\",
+        "CommmonPdbRoot": "E:\\crashserver\\common_pdbs\\",
+        "TmpDmpZipRoot" : "E:/crashserver/tmp/",
+        "DmpRoot"       : "E:/crashserver/dmps/",
+        "ResRoot"       : "E:/code/go/src/crash_server_win/res/",
+        "LogsRoot"      : "E:/crashserver/logs/"
+    },
+    "Names": {
+        "DmpName"    : "crash.dmp",
+        "DmpDescName": "crash.json"
+    }
+}

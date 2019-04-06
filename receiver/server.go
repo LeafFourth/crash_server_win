@@ -52,7 +52,7 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 		return;
 	}
 
-	path := defines.ResRoot + r.URL.Path[1:];
+	path := filepath.Join(defines.ResRoot, r.URL.Path[1:]);
 	f, err := os.Open(path);
 	if err != nil {
 		fmt.Println(err);

@@ -1,8 +1,10 @@
 package receiver
 
+import "bytes"
 import "encoding/json"
 import "fmt"
 import "io/ioutil"
+import "mime/multipart"
 import "net/http"
 import "os"
 import "path/filepath"
@@ -31,9 +33,62 @@ type unzipTask struct {
 var handler *utilities.RequestHandler;
 
 var unzipQue chan unzipTask;
+var gateClient *http.Client;
 
 func taskCb(info interface{}, succ bool, result string) {
-	fmt.Println(succ, result);
+	bodyBuffer := new(bytes.Buffer);
+	bodyWriter := multipart.NewWriter(bodyBuffer);
+
+	w, err := bodyWriter.CreateFormField(defines.CallstackKey);
+	if err != nil {
+		common.ErrorLogger.Print(info, err);
+		return;
+	}
+	if w == nil {
+		common.ErrorLogger.Print(info, "writer nil");
+		return;
+	}
+	w.Write([]byte(result));
+
+	w2, err2 := bodyWriter.CreateFormField(defines.EInfoKey);
+	if err != nil {
+		common.ErrorLogger.Print(info, err2);
+		return;
+	}
+	if w2 == nil {
+		common.ErrorLogger.Print(info, "writer nil");
+		return;
+	}
+	e := json.NewEncoder(w2);
+	err3 := e.Encode(info);
+	if err3 != nil {
+		common.ErrorLogger.Print(info, "writer error:", err3);
+		return;
+	}
+
+	bodyWriter.Close();
+
+	rq, err4 := http.NewRequest(http.MethodPost, defines.GateSvr + defines.CallstackApi, bodyBuffer);
+	if err4 != nil {
+		common.ErrorLogger.Print(info, err3);
+		return;
+	}
+	rq.Header.Add("Content-Type", "multipart/form-data; " + "boundary=" + bodyWriter.Boundary());
+
+	{
+		reps, err := gateClient.Do(rq);
+		//fmt.Println(reps, err);
+		if err != nil {
+			common.ErrorLogger.Print(info, err);
+			return;
+		}
+
+		if reps.StatusCode != http.StatusOK {
+			common.ErrorLogger.Print(info, "response code:", reps.StatusCode);
+			return;
+		}
+	}
+	
 }
 
 func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
@@ -74,32 +129,33 @@ func defaultHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(1000000);
-	files := r.MultipartForm.File["crashFile"];
-	if files == nil || len(files) <= 0 {
+	osFile, fh, err := r.FormFile("crashFile");
+	if err != nil {
+		common.ErrorLogger.Print(err);
 		w.WriteHeader(http.StatusBadRequest);
-		w.Write([]byte("empty"));
 		return;
 	}
-	file := files[0];
-	if file == nil {
+
+	if fh == nil {
+		common.ErrorLogger.Print("no file");
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("empty"));
 		return;
 	}
 
-	osFile, err := file.Open();
-	if err != nil {
-		fmt.Println(3, err);
+	if osFile == nil {
+		common.ErrorLogger.Print("no file");
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("file error"));
 		return;
 	}
 
-	filePath := filepath.Join(defines.LocalStorePath, file.Filename);
+	common.InfoLogger.Print("received:", fh.Filename);
+
+	filePath := filepath.Join(defines.LocalStorePath, fh.Filename);
 	err2 := utilities.WriteFile(osFile, filePath);
 	if err2 != nil {
-		fmt.Println(3, err2);
+		common.ErrorLogger.Print(err2);
 		w.WriteHeader(http.StatusBadRequest);
 		w.Write([]byte("file error"));
 		return;
@@ -196,6 +252,8 @@ func postUnzipTask(zipFile, dst string) {
 func RunReceiver () {
 	analyze.InitAnalyze(taskCb);
 	initUnzipTask();
+
+	gateClient = new(http.Client);
 
 	initHandler();
 	runHttpServer();

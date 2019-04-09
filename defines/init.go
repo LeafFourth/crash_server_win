@@ -8,8 +8,13 @@ import "os"
 
 const confName = "conf.json";
 
-type ports struct {
-	ReceiveHttp uint;
+type servers struct {
+	ReceiveHttp    uint;
+
+	GateSvr 	   string;
+	CallstackApi   string;
+	CallstackKey   string;
+	EInfoKey       string;
 }
 
 type paths struct {
@@ -30,9 +35,9 @@ type names struct {
 }
 
 type conf struct {
-	Ports ports;
-	Paths paths;
-	Names names;
+	Servers servers;
+	Paths   paths;
+	Names   names;
 }
 
 func createPaths() {
@@ -76,7 +81,11 @@ func InitDefines(confPath string) {
 	UnzipPath      = c.Paths.DmpRoot;
 	LogsRoot       = c.Paths.LogsRoot;
 
-	ReceiverPort = c.Ports.ReceiveHttp;
+	ReceiverPort = c.Servers.ReceiveHttp;
+	GateSvr      = c.Servers.GateSvr;
+	CallstackApi = c.Servers.CallstackApi;
+	CallstackKey = c.Servers.CallstackKey;
+	EInfoKey     = c.Servers.EInfoKey;
 
 	DmpName     = c.Names.DmpName;
 	DmpDescName = c.Names.DmpDescName;

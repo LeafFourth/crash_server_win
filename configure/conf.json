@@ -1,15 +1,19 @@
 {
-    "Ports": {
-        "ReceiveHttp": 3001
+    "Servers": {
+        "ReceiveHttp":  3001,
+        "GateSvr":      "http://127.0.0.1:3002",
+        "CallstackApi": "/RecvCallstack",
+        "CallstackKey": "callback",
+        "EInfoKey":     "einfo"
     },
     "Paths": {
         "CdbPath"       : "D:/Windows Kits/10/Debuggers/x86/cdb.exe",
         "PdbRoot"       : "E:\\crashserver\\pdbs\\",
         "CommmonPdbRoot": "E:\\crashserver\\common_pdbs\\",
-        "TmpDmpZipRoot" : "E:/crashserver/tmp/",
-        "DmpRoot"       : "E:/crashserver/dmps/",
+        "TmpDmpZipRoot" : "E:/crashserver4/tmp/",
+        "DmpRoot"       : "E:/crashserver4/dmps/",
         "ResRoot"       : "E:/code/go/src/crash_server_win/res/",
-        "LogsRoot"      : "E:/crashserver/logs/"
+        "LogsRoot"      : "E:/crashserver4/logs/"
     },
     "Names": {
         "DmpName"    : "crash.dmp",

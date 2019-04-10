@@ -20,7 +20,7 @@ import "crash_server_win/defines"
 type dmpDesc struct {
 	Ver  string;
 	Date string;
-	Uid  string;
+	Uid  int;
 }
 
 type unzipTask struct {

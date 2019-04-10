@@ -21,6 +21,7 @@ type dmpDesc struct {
 	Ver  string;
 	Date string;
 	Uid  int;
+	Name string;
 }
 
 type unzipTask struct {
@@ -231,6 +232,7 @@ func onUnzipDown(t unzipTask) {
 		common.ErrorLogger.Print("no ver info");
 		return;
 	}
+	desc.Name = dirName;
 
 	task := analyze.Task{
 				Ver: desc.Ver,

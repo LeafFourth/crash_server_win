@@ -241,6 +241,11 @@ func onUnzipDown(t unzipTask) {
 			}
 
 	analyze.RunTask(task);
+
+	err2 := os.RemoveAll(filepath.Join(t.dst, dirName));
+	if err2 != nil {
+		common.ErrorLogger.Print(dirName, ":", err2);
+	}
 }
 
 func postUnzipTask(zipFile, dst string) {

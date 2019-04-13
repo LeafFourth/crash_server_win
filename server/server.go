@@ -36,7 +36,7 @@ var handler *utilities.RequestHandler;
 var unzipQue chan unzipTask;
 var gateClient *http.Client;
 
-func taskCb(info interface{}, succ bool, result string) {
+func anaTaskCb(info interface{}, succ bool, result string) {
 	bodyBuffer := new(bytes.Buffer);
 	bodyWriter := multipart.NewWriter(bodyBuffer);
 
@@ -252,7 +252,7 @@ func postUnzipTask(zipFile, dst string) {
 }
 
 func RunReceiver () {
-	analyze.InitAnalyze(taskCb);
+	analyze.InitAnalyze(anaTaskCb);
 	initUnzipTask();
 
 	gateClient = new(http.Client);

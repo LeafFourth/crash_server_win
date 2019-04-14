@@ -1,8 +1,6 @@
 package analyze
 
-
 import "crash_server_win/defines"
-import "fmt"
 import "os/exec"
 
 type AnaCb func(info interface{}, succ bool, result string)
@@ -57,10 +55,10 @@ func ana(crashFile string, ver string, cb AnaCb, eInfo interface{}) {
 
 	cmd := exec.Command(defines.CdbPath, arg0, arg1, arg2, arg3, arg4, arg5);
 
-	out, err1 := cmd.Output();
-	if err1 != nil {
-		fmt.Println(string(out));
-	}
+	out, _ := cmd.Output();
+	// if err1 != nil {
+	// 	fmt.Println(string(out));
+	// }
 
 	if out == nil {
 		cb(eInfo, false, "");
@@ -69,7 +67,7 @@ func ana(crashFile string, ver string, cb AnaCb, eInfo interface{}) {
 
 	st := extractCallback(out);
 	if st == nil {
-		cb(eInfo, false, "");
+		cb(eInfo, false, "parse error");
 		return;
 	}
 	cb(eInfo, true, string(st));

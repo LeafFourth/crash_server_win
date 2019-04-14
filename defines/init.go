@@ -22,8 +22,8 @@ type paths struct {
 	PdbRoot        string;
 	CommmonPdbRoot string;
 
-	TmpDmpZipRoot  string;
-	DmpRoot        string;
+	DmpZipRoot     string;
+	DmpUnzipRoot   string;
 
 	ResRoot        string;
 	LogsRoot       string;
@@ -42,23 +42,23 @@ type conf struct {
 
 func createPaths() {
 	if err := os.MkdirAll(PdbPath, 0644); err != nil {
-		fmt.Println(err);
+		fmt.Println(PdbPath, ":", err);
 	}
 
 	if err := os.MkdirAll(CommonPdbPath, 0644); err != nil {
-		fmt.Println(err);
+		fmt.Println(CommonPdbPath, ":", err);
 	}
 
-	if err := os.MkdirAll(LocalStorePath, 0644); err != nil {
-		fmt.Println(err);
+	if err := os.MkdirAll(DmpZipRoot, 0644); err != nil {
+		fmt.Println(DmpZipRoot, ":", err);
 	}
 
-	if err := os.MkdirAll(UnzipPath, 0644); err != nil {
-		fmt.Println(err);
+	if err := os.MkdirAll(DmpUnzipRoot, 0644); err != nil {
+		fmt.Println(DmpUnzipRoot, ":", err);
 	}
 
 	if err := os.MkdirAll(LogsRoot, 0644); err != nil {
-		fmt.Println(err);
+		fmt.Println(LogsRoot, ":", err);
 	}
 }
 
@@ -68,17 +68,21 @@ func InitDefines(confPath string) {
 		fmt.Println(err);
 		return;
 	}
+	defer f.Close();
 
 	d := json.NewDecoder(f);
 	var c conf;
-	d.Decode(&c);
+	if err := d.Decode(&c); err != nil {
+		fmt.Println(err);
+		return;
+	}
 
 	CdbPath        = c.Paths.CdbPath;
 	PdbPath        = c.Paths.PdbRoot;
 	CommonPdbPath  = c.Paths.CommmonPdbRoot;
 	ResRoot        = c.Paths.ResRoot;
-	LocalStorePath = c.Paths.TmpDmpZipRoot;
-	UnzipPath      = c.Paths.DmpRoot;
+	DmpZipRoot     = c.Paths.DmpZipRoot;
+	DmpUnzipRoot   = c.Paths.DmpUnzipRoot;
 	LogsRoot       = c.Paths.LogsRoot;
 
 	ReceiverPort = c.Servers.ReceiveHttp;

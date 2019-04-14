@@ -1,12 +1,12 @@
 package defines
 
-var CdbPath = "D:/Windows Kits/10/Debuggers/x86/cdb.exe";
-var PdbPath = `E:\pdbs\`;
-var CommonPdbPath = `E:\common_pdbs\`;
+var CdbPath = "";
+var PdbPath = ``;
+var CommonPdbPath = ``;
 
-var ResRoot = "E:/code/go/src/crash_server_win/res/";
-var LocalStorePath = "E:/crashserver/";
+var ResRoot = "";
+var DmpZipRoot = "";
+var DmpUnzipRoot  = "";
 
-var UnzipPath = "E:/tmp/"
 
 var LogsRoot = "";

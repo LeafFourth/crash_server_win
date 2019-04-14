@@ -40,6 +40,14 @@ func anaTaskCb(info interface{}, succ bool, result string) {
 	bodyBuffer := new(bytes.Buffer);
 	bodyWriter := multipart.NewWriter(bodyBuffer);
 
+	if o, ok := info.(*dmpDesc); ok {
+		if err := os.RemoveAll(filepath.Join(defines.DmpUnzipRoot, o.Name)); err != nil {
+			common.ErrorLogger.Print(o.Name, ":", err);
+		}
+	}
+
+	
+
 	w, err := bodyWriter.CreateFormField(defines.CallstackKey);
 	if err != nil {
 		common.ErrorLogger.Print(info, err);
@@ -103,7 +111,6 @@ func handleDefaultPage(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func defaultHandle(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("require ", r.URL.Path);
 	if handleDefaultPage(w, r) {
 		return;
 	}
@@ -153,7 +160,7 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 
 	common.InfoLogger.Print("received:", fh.Filename);
 
-	filePath := filepath.Join(defines.LocalStorePath, fh.Filename);
+	filePath := filepath.Join(defines.DmpZipRoot, fh.Filename);
 	err2 := utilities.WriteFile(osFile, filePath);
 	if err2 != nil {
 		common.ErrorLogger.Print(err2);
@@ -163,7 +170,7 @@ func receiveCrashFile(w http.ResponseWriter, r *http.Request) {
 	}
 	osFile.Close();
 
-	postUnzipTask(filePath, defines.UnzipPath);
+	postUnzipTask(filePath, defines.DmpUnzipRoot);
 }
 
 func initHandler() {
@@ -223,17 +230,18 @@ func onUnzipDown(t unzipTask) {
 		common.ErrorLogger.Print("open desc file error:", err);
 		return;
 	}
-	defer file.Close();
 
 	decoder := json.NewDecoder(file);
 	var desc dmpDesc;
 	decoder.Decode(&desc);
 	if len(desc.Ver) <= 0 {
+		file.Close();
 		common.ErrorLogger.Print("no ver info");
 		return;
 	}
-	desc.Name = dirName;
+	file.Close();
 
+	desc.Name = dirName;
 	task := analyze.Task{
 				Ver: desc.Ver,
 				File: dmpName,
@@ -241,11 +249,6 @@ func onUnzipDown(t unzipTask) {
 			}
 
 	analyze.RunTask(task);
-
-	err2 := os.RemoveAll(filepath.Join(t.dst, dirName));
-	if err2 != nil {
-		common.ErrorLogger.Print(dirName, ":", err2);
-	}
 }
 
 func postUnzipTask(zipFile, dst string) {
